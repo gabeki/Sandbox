@@ -29,7 +29,7 @@ class SimpleSocketServer:
 
 
 
-class EchoRequestHandler:
+class StaticPageRequestHandler:
     def __init__(self, client, client_address):
         self.client = client
         self.client_address = client_address
@@ -44,10 +44,39 @@ class EchoRequestHandler:
 
     def handle(self):
         data = self.client.recv(1024)
-        if data: 
-            self.client.send(data) 
-            print self.client_address, " >>> ", data
+        if data:
+            data = data.split('\r\n')[0]
+            words = data.split()
+            if len(words) == 3:
+                command, path, version = words
+            elif len(words) == 2:
+                command, path = words
+            else:
+                self.handle_error_404()
+                return;
+
+            if command != 'GET':
+                self.handle_error_501()
+            else:
+                self.do_get()
+
         self.client.close()
+
+    def do_get(self):
+        """ Reads in the entire file and returns the content.  """
+        file = open("resource/index.html")
+        data = file.read()
+        file.close()
+
+        self.client.send("HTTP/1.1 200 OK\r\n");
+        self.client.send("\r\n\r\n");
+        self.client.send(data);
+
+    def handle_error_404(self):
+        self.client.send("HTTP/1.1 404 Bad Request\r\n");
+
+    def handle_error_501(self):
+        self.client.send("HTTP/1.1 501 Not Implemented\r\n");
 
     def finish(self):
         pass
@@ -55,7 +84,7 @@ class EchoRequestHandler:
 
 if __name__ == '__main__':
     server_address = ('127.0.0.1', 8000)
-    echo = SimpleSocketServer(server_address, EchoRequestHandler)
+    echo = SimpleSocketServer(server_address, StaticPageRequestHandler)
     sa = echo.socket.getsockname()
     print "Serving on", sa[0], "port", sa[1], "..."
     echo.serve_forever()
