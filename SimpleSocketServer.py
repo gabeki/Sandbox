@@ -65,22 +65,36 @@ class TreeWalkingRequestHandler:
 
     def do_get(self, path):
         self.client.send("HTTP/1.1 200 OK\r\n");
-        self.client.send("\r\n\r\n");
 
-        base_path = "." + os.path.normpath(path)
+        base_path = "." + os.path.normpath(path);
 
-        self.client.send("<html>");
-        if path != "/":
-            self.client.send("<a href=\"/" + base_path + "/..\">..</a><br/>");
+        if os.path.isdir(base_path):
+            self.client.send("\r\n\r\n");
+            self.client.send("<html>");
+            if path != "/":
+                self.client.send("<a href=\"/" + base_path + "/..\">..</a><br/>");
 
-        for file in os.listdir(base_path):
-            current_file = os.path.join(base_path, file) 
-            if os.path.isdir(current_file):
-                self.client.send("<a href=\"/" + current_file + "\">" + file + "</a><br/>");
+            for file in os.listdir(base_path):
+                current_file = os.path.join(base_path, file);
+                if os.path.isdir(current_file):
+                    self.client.send("<a href=\"/" + current_file + "\">" + file + "/</a><br/>");
+                else:
+                    self.client.send("<a href=\"/" + current_file + "\">" + file + "</a><br/>");
+
+            self.client.send("</html>");
+
+        else:
+            name, ext = os.path.splitext(base_path);
+            if ext.lower() == ".jpg":
+                self.client.send("Content-type: image/jpeg");
+                file = open(base_path, 'rb');
+
             else:
-                self.client.send(file + "<br/>");
+                file = open(base_path);
 
-        self.client.send("</html>");
+            self.client.send("\r\n\r\n");
+            self.client.send(file.read());
+            file.close();
 
     def handle_error_404(self):
         self.client.send("HTTP/1.1 404 Bad Request\r\n");
