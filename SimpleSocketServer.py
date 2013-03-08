@@ -59,16 +59,28 @@ class TreeWalkingRequestHandler:
             if command != 'GET':
                 self.handle_error_501()
             else:
-                self.do_get()
+                self.do_get(path)
 
         self.client.close()
 
-    def do_get(self):
+    def do_get(self, path):
         self.client.send("HTTP/1.1 200 OK\r\n");
         self.client.send("\r\n\r\n");
 
-        for file in os.listdir("."):
-            self.client.send(os.path.join(".", file) + "\r\n");
+        base_path = "." + os.path.normpath(path)
+
+        self.client.send("<html>");
+        if path != "/":
+            self.client.send("<a href=\"/" + base_path + "/..\">..</a><br/>");
+
+        for file in os.listdir(base_path):
+            current_file = os.path.join(base_path, file) 
+            if os.path.isdir(current_file):
+                self.client.send("<a href=\"/" + current_file + "\">" + file + "</a><br/>");
+            else:
+                self.client.send(file + "<br/>");
+
+        self.client.send("</html>");
 
     def handle_error_404(self):
         self.client.send("HTTP/1.1 404 Bad Request\r\n");
