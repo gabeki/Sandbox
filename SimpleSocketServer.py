@@ -1,5 +1,6 @@
 #!/usr/local/bin/python
 
+import os
 import socket
 
 class SimpleSocketServer:
@@ -29,7 +30,7 @@ class SimpleSocketServer:
 
 
 
-class StaticPageRequestHandler:
+class TreeWalkingRequestHandler:
     def __init__(self, client, client_address):
         self.client = client
         self.client_address = client_address
@@ -63,14 +64,11 @@ class StaticPageRequestHandler:
         self.client.close()
 
     def do_get(self):
-        """ Reads in the entire file and returns the content.  """
-        file = open("resource/index.html")
-        data = file.read()
-        file.close()
-
         self.client.send("HTTP/1.1 200 OK\r\n");
         self.client.send("\r\n\r\n");
-        self.client.send(data);
+
+        for file in os.listdir("."):
+            self.client.send(os.path.join(".", file) + "\r\n");
 
     def handle_error_404(self):
         self.client.send("HTTP/1.1 404 Bad Request\r\n");
@@ -84,7 +82,7 @@ class StaticPageRequestHandler:
 
 if __name__ == '__main__':
     server_address = ('127.0.0.1', 8000)
-    echo = SimpleSocketServer(server_address, StaticPageRequestHandler)
+    echo = SimpleSocketServer(server_address, TreeWalkingRequestHandler)
     sa = echo.socket.getsockname()
     print "Serving on", sa[0], "port", sa[1], "..."
     echo.serve_forever()
